@@ -1,6 +1,7 @@
-import {IFrame} from './i-frame';
-import {IMessage} from './i-message';
-import {StompHeaders} from './stomp-headers';
+import { IFrame } from './i-frame';
+import { IMessage } from './i-message';
+import { StompHeaders } from './stomp-headers';
+import WebSocket from 'ws';
 
 /**
  * This callback will receive a `string` as parameter.
@@ -14,7 +15,7 @@ export type debugFnType = (msg: string) => void;
  *
  * Part of `@stomp/stompjs`.
  */
-export type messageCallbackType = (message: IMessage) => void;
+export type messageCallbackType<T> = (message: IMessage<T>) => void;
 
 /**
  * This callback will receive a {@link IFrame} as parameter.
@@ -29,7 +30,7 @@ export type frameCallbackType = (receipt: IFrame) => void;
  *
  * Part of `@stomp/stompjs`.
  */
-export type closeEventCallbackType = (evt: CloseEvent) => void;
+export type closeEventCallbackType = (evt: { wasClean: boolean; code: number; reason: string; target: WebSocket }) => void;
 
 /**
  * This callback will receive an [Event]{@link https://developer.mozilla.org/en-US/docs/Web/API/Event}
@@ -37,7 +38,7 @@ export type closeEventCallbackType = (evt: CloseEvent) => void;
  *
  * Part of `@stomp/stompjs`.
  */
-export type wsErrorCallbackType = (evt: Event) => void;
+export type wsErrorCallbackType = (evt: { error: any, message: string, type: string, target: WebSocket }) => void;
 
 /**
  * Parameters for [Client#publish]{@link Client#publish}.

@@ -1,8 +1,12 @@
-import {ITransaction} from './i-transaction';
-import {StompConfig} from './stomp-config';
-import {StompHandler} from './stomp-handler';
-import {StompHeaders} from './stomp-headers';
-import {StompSubscription} from './stomp-subscription';
+import { ITransaction } from './i-transaction';
+import { StompConfig } from './stomp-config';
+import { StompHandler } from './stomp-handler';
+import { StompHeaders } from './stomp-headers';
+import { StompSubscription } from './stomp-subscription';
+
+// Polyfill
+import WebSocket from 'ws';
+
 import {
   closeEventCallbackType,
   debugFnType,
@@ -11,7 +15,9 @@ import {
   messageCallbackType,
   wsErrorCallbackType
 } from './types';
-import {Versions} from './versions';
+import { Versions } from './versions';
+import { IFrame } from './i-frame';
+import { IMessage } from './i-message';
 
 /**
  * STOMP Client Class.
@@ -150,7 +156,7 @@ export class Client {
    *
    * The actual {@link IMessage} will be passed as parameter to the callback.
    */
-  public onUnhandledMessage: messageCallbackType;
+  public onUnhandledMessage: messageCallbackType<any>;
 
   /**
    * STOMP brokers can be requested to notify when an operation is actually completed.
@@ -189,7 +195,7 @@ export class Client {
    * This can be used to reliably fetch credentials, access token etc. from some other service
    * in an asynchronous way.
    */
-  public beforeConnect: () => void|Promise<void>;
+  public beforeConnect: () => void | Promise<void>;
 
   /**
    * Callback, invoked on every successful connection to the STOMP broker.
@@ -284,7 +290,7 @@ export class Client {
    */
   constructor(conf: StompConfig = {}) {
     // Dummy callbacks
-    const noOp = () => {};
+    const noOp = () => { };
     this.debug = noOp;
     this.beforeConnect = noOp;
     this.onConnect = noOp;
@@ -356,7 +362,7 @@ export class Client {
       forceBinaryWSFrames: this.forceBinaryWSFrames,
       logRawCommunication: this.logRawCommunication,
 
-      onConnect: (frame) => {
+      onConnect: (frame: IFrame) => {
         if (!this._active) {
           this.debug('STOMP got connected while deactivate was issued, will disconnect now');
           this._disposeStompHandler();
@@ -364,10 +370,10 @@ export class Client {
         }
         this.onConnect(frame);
       },
-      onDisconnect: (frame) => {
+      onDisconnect: (frame: IFrame) => {
         this.onDisconnect(frame);
       },
-      onStompError: (frame) => {
+      onStompError: (frame: IFrame) => {
         this.onStompError(frame);
       },
       onWebSocketClose: (evt) => {
@@ -381,13 +387,13 @@ export class Client {
       onWebSocketError: (evt) => {
         this.onWebSocketError(evt);
       },
-      onUnhandledMessage: (message) => {
+      onUnhandledMessage: (message: IMessage<any>) => {
         this.onUnhandledMessage(message);
       },
-      onUnhandledReceipt: (frame) => {
+      onUnhandledReceipt: (frame: IFrame) => {
         this.onUnhandledReceipt(frame);
       },
-      onUnhandledFrame: (frame) => {
+      onUnhandledFrame: (frame: IFrame) => {
         this.onUnhandledFrame(frame);
       }
     });
@@ -559,8 +565,8 @@ export class Client {
    *        var subscription = client.subscribe(destination, callback, { id: mySubId });
    * ```
    */
-  public subscribe(destination: string, callback: messageCallbackType, headers: StompHeaders = {}): StompSubscription {
-    return this._stompHandler.subscribe(destination, callback, headers);
+  public subscribe<T>(destination: string, callback: messageCallbackType<T>, headers: StompHeaders = {}): StompSubscription {
+    return this._stompHandler.subscribe<T>(destination, callback, headers);
   }
 
   /**

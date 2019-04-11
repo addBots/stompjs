@@ -9,7 +9,3 @@ export * from './stomp-subscription';
 export * from './i-transaction';
 export * from './types';
 export * from './versions';
-
-// Compatibility code
-export * from './compatibility/compat-client';
-export * from './compatibility/stomp';

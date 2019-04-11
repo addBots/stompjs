@@ -1,7 +1,12 @@
-import {BYTE} from './byte';
-import {IFrame} from './i-frame';
-import {StompHeaders} from './stomp-headers';
-import {IRawFrameType} from './types';
+import { BYTE } from './byte';
+import { IFrame } from './i-frame';
+import { StompHeaders } from './stomp-headers';
+import { IRawFrameType } from './types';
+
+// Polyfill
+const TextEncodingPolyfill = require('text-encoding');
+const TextEncoder = TextEncodingPolyfill.TextEncoder;
+const TextDecoder = TextEncodingPolyfill.TextDecoder;
 
 /**
  * Frame class represents a STOMP frame.
@@ -58,7 +63,7 @@ export class FrameImpl implements IFrame {
     command: string, headers?: StompHeaders, body?: string, binaryBody?: Uint8Array,
     escapeHeaderValues?: boolean, skipContentLengthHeader?: boolean
   }) {
-    const {command, headers, body, binaryBody, escapeHeaderValues, skipContentLengthHeader} = params;
+    const { command, headers, body, binaryBody, escapeHeaderValues, skipContentLengthHeader } = params;
     this.command = command;
     this.headers = (Object as any).assign({}, headers || {});
 
@@ -118,7 +123,7 @@ export class FrameImpl implements IFrame {
    *
    * @internal
    */
-  public serialize(): string|ArrayBuffer {
+  public serialize(): string | ArrayBuffer {
     const cmdAndHeaders = this.serializeCmdAndHeaders();
 
     if (this.isBinaryBody) {

@@ -1,9 +1,7 @@
 # Ignore everything then include selectively
 *
 
-!bundles/**/*
-!esm5/**/*
-!esm6/**/*
+!build/**/*
 !index.d.ts
 !package.json
 !README.md

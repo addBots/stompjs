@@ -1,5 +1,5 @@
-import {IFrame} from './i-frame';
-import {StompHeaders} from './stomp-headers';
+import { IFrame } from './i-frame';
+import { StompHeaders } from './stomp-headers';
 
 /**
  * Instance of Message will be passed to [subscription callback]{@link Client#subscribe}
@@ -11,7 +11,10 @@ import {StompHeaders} from './stomp-headers';
  *
  * See [Client#subscribe]{@link Client#subscribe} for example.
  */
-export interface IMessage extends IFrame {
+export interface IMessage<T> extends IFrame {
+
+  bodyTyped: T;
+
   /**
    * When subscribing with manual acknowledgement, call this method on the message to ACK the message.
    *
@@ -32,4 +35,4 @@ export interface IMessage extends IFrame {
  *
  * Part of `@stomp/stompjs`.
  */
-export type Message = IMessage;
+export type Message<T> = IMessage<T>;

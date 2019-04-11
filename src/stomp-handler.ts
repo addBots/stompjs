@@ -1,12 +1,12 @@
-import {BYTE} from './byte';
-import {Client} from './client';
-import {FrameImpl} from './frame-impl';
-import {IMessage} from './i-message';
-import {ITransaction} from './i-transaction';
-import {Parser} from './parser';
-import {StompConfig} from './stomp-config';
-import {StompHeaders} from './stomp-headers';
-import {StompSubscription} from './stomp-subscription';
+import { BYTE } from './byte';
+import { Client } from './client';
+import { FrameImpl } from './frame-impl';
+import { IMessage } from './i-message';
+import { ITransaction } from './i-transaction';
+import { Parser } from './parser';
+import { StompConfig } from './stomp-config';
+import { StompHeaders } from './stomp-headers';
+import { StompSubscription } from './stomp-subscription';
 import {
   closeEventCallbackType,
   debugFnType,
@@ -15,7 +15,13 @@ import {
   messageCallbackType,
   wsErrorCallbackType
 } from './types';
-import {Versions} from './versions';
+import { Versions } from './versions';
+import WebSocket from 'ws';
+
+// Polyfill
+const TextEncodingPolyfill = require('text-encoding');
+const TextEncoder = TextEncodingPolyfill.TextEncoder;
+const TextDecoder = TextEncodingPolyfill.TextDecoder;
 
 /**
  * The STOMP protocol handler
@@ -37,7 +43,7 @@ export class StompHandler {
 
   public heartbeatOutgoing: number;
 
-  public onUnhandledMessage: messageCallbackType;
+  public onUnhandledMessage: messageCallbackType<any>;
 
   public onUnhandledReceipt: frameCallbackType;
 
@@ -72,7 +78,7 @@ export class StompHandler {
 
   private _connected: boolean;
 
-  private readonly _subscriptions: { [key: string]: messageCallbackType };
+  private readonly _subscriptions: { [key: string]: messageCallbackType<any> };
   private readonly _receiptWatchers: { [key: string]: frameCallbackType };
   private _partialData: string;
   private _escapeHeaderValues: boolean;
@@ -137,14 +143,14 @@ export class StompHandler {
       parser.parseChunk(evt.data);
     };
 
-    this._webSocket.onclose = (closeEvent: CloseEvent): void => {
+    this._webSocket.onclose = (closeEvent): void => {
       this.debug(`Connection closed to ${this._webSocket.url}`);
       this.onWebSocketClose(closeEvent);
       this._cleanUp();
     };
 
-    this._webSocket.onerror = (errorEvent: Event): void => {
-      this.onWebSocketError(errorEvent);
+    this._webSocket.onerror = (error): void => {
+      this.onWebSocketError(error);
     };
 
     this._webSocket.onopen = () => {
@@ -154,7 +160,7 @@ export class StompHandler {
       this.debug('Web Socket Opened...');
       connectHeaders['accept-version'] = this.stompVersions.supportedVersions();
       connectHeaders['heart-beat'] = [this.heartbeatOutgoing, this.heartbeatIncoming].join(',');
-      this._transmit({command: 'CONNECT', headers: connectHeaders});
+      this._transmit({ command: 'CONNECT', headers: connectHeaders });
     };
   }
 
@@ -187,7 +193,14 @@ export class StompHandler {
       const onReceive = this._subscriptions[subscription] || this.onUnhandledMessage;
 
       // bless the frame to be a Message
-      const message = frame as IMessage;
+      const message = frame as IMessage<any>;
+
+      try {
+        message.bodyTyped = JSON.parse(new TextDecoder("utf-8").decode(message.binaryBody))
+      }
+      catch (err) {
+        message.bodyTyped = new TextDecoder("utf-8").decode(message.binaryBody);
+      }
 
       const client = this;
       const messageId = this._connectedVersion === Versions.V1_2 ? message.headers.ack : message.headers['message-id'];
@@ -256,9 +269,11 @@ export class StompHandler {
     }
   }
 
-  private _transmit(params: { command: string, headers?: StompHeaders,
-                              body?: string, binaryBody?: Uint8Array, skipContentLengthHeader?: boolean }): void {
-    const {command, headers, body, binaryBody, skipContentLengthHeader} = params;
+  private _transmit(params: {
+    command: string, headers?: StompHeaders,
+    body?: string, binaryBody?: Uint8Array, skipContentLengthHeader?: boolean
+  }): void {
+    const { command, headers, body, binaryBody, skipContentLengthHeader } = params;
     const frame = new FrameImpl({
       command,
       headers,
@@ -277,7 +292,7 @@ export class StompHandler {
     }
 
     if (this.forceBinaryWSFrames && typeof rawChunk === 'string') {
-      rawChunk = new TextEncoder().encode(rawChunk);
+      rawChunk = new TextEncoder().encode(rawChunk).buffer;
     }
 
     if (typeof rawChunk !== 'string' || !this.splitLargeFrames) {
@@ -307,7 +322,7 @@ export class StompHandler {
           this._cleanUp();
           this.onDisconnect(frame);
         });
-        this._transmit({command: 'DISCONNECT', headers: disconnectHeaders});
+        this._transmit({ command: 'DISCONNECT', headers: disconnectHeaders });
       } catch (error) {
         this.debug(`Ignoring error during disconnect ${error}`);
       }
@@ -330,8 +345,8 @@ export class StompHandler {
   }
 
   public publish(params: IPublishParams): void {
-    const {destination, headers, body, binaryBody, skipContentLengthHeader} = params;
-    const hdrs: StompHeaders = (Object as any).assign({destination}, headers);
+    const { destination, headers, body, binaryBody, skipContentLengthHeader } = params;
+    const hdrs: StompHeaders = (Object as any).assign({ destination }, headers);
     this._transmit({
       command: 'SEND',
       headers: hdrs,
@@ -345,7 +360,7 @@ export class StompHandler {
     this._receiptWatchers[receiptId] = callback;
   }
 
-  public subscribe(destination: string, callback: messageCallbackType, headers: StompHeaders = {}): StompSubscription {
+  public subscribe<T>(destination: string, callback: messageCallbackType<T>, headers: StompHeaders = {}): StompSubscription {
     headers = (Object as any).assign({}, headers);
 
     if (!headers.id) {
@@ -353,7 +368,7 @@ export class StompHandler {
     }
     headers.destination = destination;
     this._subscriptions[headers.id] = callback;
-    this._transmit({command: 'SUBSCRIBE', headers});
+    this._transmit({ command: 'SUBSCRIBE', headers });
     const client = this;
     return {
       id: headers.id,
@@ -369,7 +384,7 @@ export class StompHandler {
 
     delete this._subscriptions[id];
     headers.id = id;
-    this._transmit({command: 'UNSUBSCRIBE', headers});
+    this._transmit({ command: 'UNSUBSCRIBE', headers });
   }
 
   public begin(transactionId: string): ITransaction {
@@ -416,7 +431,7 @@ export class StompHandler {
       headers['message-id'] = messageId;
     }
     headers.subscription = subscriptionId;
-    this._transmit({command: 'ACK', headers});
+    this._transmit({ command: 'ACK', headers });
   }
 
   public nack(messageId: string, subscriptionId: string, headers: StompHeaders = {}): void {
@@ -428,7 +443,7 @@ export class StompHandler {
       headers['message-id'] = messageId;
     }
     headers.subscription = subscriptionId;
-    return this._transmit({command: 'NACK', headers});
+    return this._transmit({ command: 'NACK', headers });
   }
 
 }

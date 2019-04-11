@@ -1,4 +1,4 @@
-import {StompHeaders} from './stomp-headers';
+import { StompHeaders } from './stomp-headers';
 import {
   closeEventCallbackType,
   debugFnType,
@@ -6,7 +6,7 @@ import {
   messageCallbackType,
   wsErrorCallbackType
 } from './types';
-import {Versions} from './versions';
+import { Versions } from './versions';
 
 /**
  * Configuration options for STOMP Client, each key corresponds to
@@ -74,7 +74,7 @@ export class StompConfig {
   /**
    * See [Client#onUnhandledMessage]{@link Client#onUnhandledMessage}.
    */
-  public onUnhandledMessage?: messageCallbackType;
+  public onUnhandledMessage?: messageCallbackType<any>;
 
   /**
    * See [Client#onUnhandledReceipt]{@link Client#onUnhandledReceipt}.
@@ -89,7 +89,7 @@ export class StompConfig {
   /**
    * See [Client#beforeConnect]{@link Client#beforeConnect}.
    */
-  public beforeConnect?: () => void|Promise<void>;
+  public beforeConnect?: () => void | Promise<void>;
 
   /**
    * See [Client#onConnect]{@link Client#onConnect}.

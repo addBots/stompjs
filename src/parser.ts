@@ -1,4 +1,9 @@
-import {IRawFrameType} from './types';
+import { IRawFrameType } from './types';
+
+// Polyfill
+const TextEncodingPolyfill = require('text-encoding');
+const TextEncoder = TextEncodingPolyfill.TextEncoder;
+const TextDecoder = TextEncodingPolyfill.TextDecoder;
 
 /**
  * @internal
@@ -75,7 +80,7 @@ export class Parser {
     this._initState();
   }
 
-  public parseChunk(segment: string|ArrayBuffer) {
+  public parseChunk(segment: string | ArrayBuffer) {
     let chunk: Uint8Array;
 
     if ((segment instanceof ArrayBuffer)) {
